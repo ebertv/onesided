@@ -1,0 +1,48 @@
+{
+  "datasets_processed": 1,
+  "total_dialogues": 1480377,
+  "total_examples": 4404158,
+  "dataset_details": [
+    {
+      "dataset": "soda",
+      "split_method": "deterministic_sequential_no_randomization_with_turn_combining",
+      "split_ratios": {
+        "train": 0.8,
+        "dev": 0.1,
+        "test": 0.1
+      },
+      "dialogue_counts": {
+        "total": 1480377,
+        "train": 1184301,
+        "dev": 148037,
+        "test": 148039
+      },
+      "dialogue_indices": {
+        "total_dialogues": 1480377,
+        "train_start": 0,
+        "train_end": 1184301,
+        "dev_start": 1184301,
+        "dev_end": 1332338,
+        "test_start": 1332338,
+        "test_end": 1480377,
+        "train_size": 1184301,
+        "dev_size": 148037,
+        "test_size": 148039
+      },
+      "example_counts": {
+        "train": 3522963,
+        "dev": 440661,
+        "test": 440534,
+        "total": 4404158
+      },
+      "split_percentages": {
+        "train_dialogues": 79.9999594697837,
+        "dev_dialogues": 9.999952714747662,
+        "test_dialogues": 10.000087815468628,
+        "train_examples": 79.9917487065632,
+        "dev_examples": 10.005567466017341,
+        "test_examples": 10.002683827419451
+      }
+    }
+  ]
+}
