@@ -16,11 +16,85 @@ conda activate onesided
 pip install -r requirements.txt
 ```
 
+### 3. Collect Datasets
+Download all datasets and place in the data folder for this repo
+- [The Candor Corpus](https://betterup-data-requests.herokuapp.com/) 
+- [MultiWOZ](https://www.kaggle.com/datasets/taejinwoo/multiwoz-22)
+- [DailyDialog](https://www.kaggle.com/datasets/thedevastator/dailydialog-unlock-the-conversation-potential-in)
+
+
 ## Prompting
+### Other Party Recreation
+#### 1. Create prompts for all data
+To create recreation prompts for all conversations in a datset, run `python gather_prompts.py` with arguments depending on which setting you would like to run. 
+
+For full prior context with no anti-hallucination instructions:
+```sh
+TBD
+```
+Output will be saved to:
+
+---
+For full prior context:
+```sh
+TBD
+```
+Output will be saved to:
+
+---
+For full prior context and one future turn:
+```sh
+TBD
+```
+Output will be saved to:
+
+---
+For full prior context and turn length markers:
+```sh
+TBD
+```
+Output will be saved to:
+
+---
+For full prior context and one future turn and turn length markers:
+```sh
+TBD
+```
+Output will be saved to:
+
+---
+For local context:
+```sh
+TBD
+```
+Output will be saved to:
+
+
+#### 2. Generate predictions
+To generate predictions, run:
+```sh
+python generate_predictions.py \
+--input_file <FILE CREATED IN STEP 1>
+--model <either claude or llama>
+```
+Output will be saved to:
+
+### Summarization
 TBD
 
+
 ## Fine tuning
-If you wish to fine tune your own LLaMA model for conversational infilling, clone [our fork of Chris Donahue's ILM code base](https://github.com/ebertv/ilm/tree/master) and follow all instructions there for creating a custom dataset and fine tuning LLaMA.
+
+### 1. Format Data
+TBD
+
+### 2. Model Set up
+If you wish to fine tune your own LLaMA model for conversational infilling,
+Clone [our fork of Chris Donahue's ILM code base](https://github.com/ebertv/ilm/tree/master) and follow all instructions there for creating a custom dataset and fine tuning LLaMA.
+
+Otherwise: TBD with our checkpoints
+
+## Evaluation
 
 
 ## Citation
