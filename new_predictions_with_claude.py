@@ -25,7 +25,7 @@ except ImportError:
     TokenCounterUtils = None
 
 # Add data root and conversational data loader
-DATA_ROOT = os.getenv("DATA_ROOT", "/gscratch/scrubbed/ebertv/onesided/data")
+DATA_ROOT = os.getenv("DATA_ROOT", "./data")
 sys.path.append(".")
 sys.path.append("./data")
 try:

@@ -21,7 +21,7 @@ from typing import List, Dict, Any, Tuple
 from collections import defaultdict
 
 # Add data root and conversational data loader
-DATA_ROOT = os.getenv("DATA_ROOT", "/gscratch/scrubbed/ebertv/onesided/data")
+DATA_ROOT = os.getenv("DATA_ROOT", "./data")
 sys.path.append(".")
 sys.path.append("./data")
 sys.path.append(str(Path(__file__).parent))

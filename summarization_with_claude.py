@@ -27,7 +27,7 @@ except ImportError:
 # ------------------------------------------------------------------ #
 # Dataset loader (using ConversationalDataLoader like predictions_with_claude.py)
 # ------------------------------------------------------------------ #
-DATA_ROOT = os.getenv("DATA_ROOT", "/gscratch/scrubbed/ebertv/onesided/data")
+DATA_ROOT = os.getenv("DATA_ROOT", "./data")
 sys.path.append(".")
 sys.path.append("./data")
 try:

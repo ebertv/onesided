@@ -48,7 +48,7 @@ load_dotenv('.env')
 # Get API keys
 CLAUDE_API_KEY = os.getenv('CLAUDE_API_KEY')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-BASE_DIR = "/gscratch/scrubbed/ebertv/onesided"
+BASE_DIR = "."
 LLAMA_CANDIDATES = [
     "models--meta-llama--Meta-Llama-3-8B-Instruct",
     "Meta-Llama-3-8B-Instruct",

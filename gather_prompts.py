@@ -10,7 +10,7 @@ from prompt_outline import BASE_INSTR, RULES, SCENARIOS, DESC, ENHANCED_FEW_SHOT
 from conversational_dataloader import ConversationalDataLoader
 
 
-DATA_ROOT = os.getenv("DATA_ROOT", "/gscratch/scrubbed/ebertv/onesided/data")
+DATA_ROOT = os.getenv("DATA_ROOT", "./data")
 sys.path.append("./data")
 
 def estimate_target_words(actual_utterance: str) -> int:
