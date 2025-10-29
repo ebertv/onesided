@@ -21,7 +21,17 @@ Download all datasets and place in the data folder for this repo
 - [The Candor Corpus](https://betterup-data-requests.herokuapp.com/) 
 - [MultiWOZ](https://www.kaggle.com/datasets/taejinwoo/multiwoz-22)
 - [DailyDialog](https://www.kaggle.com/datasets/thedevastator/dailydialog-unlock-the-conversation-potential-in)
+- [Soda](https://huggingface.co/datasets/allenai/soda)
 
+Create the data splits by running `create_deterministic_splits.py --all --output_dir data_splits`. To create splits for only a specific dataset, replace `--all` with `--dataset`. Must be one of the above datasets. 
+
+### 4. Create .env file
+
+Create a .env file that contains:
+```python
+CLAUDE_API_KEY=<Your API Key>
+OPENAI_API_KEY=<Your API Key>
+```
 
 ## Prompting
 ### Other Party Recreation

@@ -27,7 +27,7 @@ def should_mask_speaker(speaker: str, dataset: str) -> bool:
     
     # MultiWOZ: System/SYSTEM speakers
     if 'multiwoz' in dataset_lower:
-        return speaker in ['System', 'SYSTEM']
+        return speaker in ['System', 'SYSTEM', 'Speaker_2']
     
     # Kandor: Participant_R (receiving participant)  
     elif 'kandor' in dataset_lower:
@@ -518,6 +518,10 @@ if __name__ == "__main__":
     # Generate prompts for each dialogue and turn
     if output_file and output_file.exists():
         print(f"[WARN] Output file {output_file} already exists and will be overwritten.")
+        proceed = input("Type 'yes' to proceed and overwrite, or anything else to cancel: ")
+        if proceed.lower() != 'yes':
+            print("Operation cancelled by user.")
+            sys.exit(0)
         output_file.unlink()
     prompts = []
     for dlg_idx, dlg in tqdm(enumerate(all_dialogues), total=len(all_dialogues), desc="Generating prompts"):
@@ -562,20 +566,22 @@ if __name__ == "__main__":
                         with open(output_file, "a+", encoding="utf-8") as f:
                             f.write(json.dumps({
                                 "dialogue_id": dlg.get('dialogue_id', f"dlg_{dlg_idx}"),
+                                "turn_id": turn_n+1,
                                 "scenario": scen,
                                 "full_dialogue": full_dialogue,
                                 "prompt": prompt_text,
-                                "target_turn": turn_n,
+                                "target_turn": turn_n+1,
                                 "actual_response": actual_response,
                                 "dataset": dlg.get('dataset', 'unknown')
                             }, ensure_ascii=False) + "\n")
                     else:
                         prompts.append({
                             "dialogue_id": dlg.get('dialogue_id', f"dlg_{dlg_idx}"),
+                            "turn_id": turn_n+1,
                             "scenario": scen,
                             "full_dialogue": full_dialogue,
                             "prompt": prompt_text,
-                            "target_turn": turn_n,
+                            "target_turn": turn_n+1,
                             "actual_response": actual_response,
                             "dataset": dlg.get('dataset', 'unknown')
                         })
@@ -591,6 +597,7 @@ if __name__ == "__main__":
                     with open(output_file, "a+", encoding="utf-8") as f:
                         f.write(json.dumps({
                             "dialogue_id": dlg.get('dialogue_id', f"dlg_{dlg_idx}"),
+                            "turn_id": "all_system_turns",
                             "scenario": scen,
                             "full_dialogue": full_dialogue,
                             "prompt": prompt_text,
@@ -600,6 +607,7 @@ if __name__ == "__main__":
                 else:
                     prompts.append({
                         "dialogue_id": dlg.get('dialogue_id', f"dlg_{dlg_idx}"),
+                        "turn_id": "all_system_turns",
                         "scenario": scen,
                         "full_dialogue": full_dialogue,
                         "prompt": prompt_text,

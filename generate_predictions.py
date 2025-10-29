@@ -444,6 +444,8 @@ CRITICAL: Respond with ONLY the direct system response. Never include:
         prompt = prompt_data['prompt']
         scenario = prompt_data['scenario']
         result = {
+            "dialogue_id": prompt_data.get("dialogue_id", ""),
+            "turn_id": prompt_data.get("turn_id", ""),
             "scenario": scenario,
             "full_dialogue": prompt_data.get("full_dialogue", ""),
             "prompt": prompt,
