@@ -192,10 +192,34 @@ python create_finetuning_from_splits.py --all
 ```
 
 ### 2. Model Set up
-If you wish to fine tune your own LLaMA model for conversational infilling,
-Clone [our fork of Chris Donahue's ILM code base](https://github.com/ebertv/ilm/tree/master) and follow all instructions there for creating a custom dataset and fine tuning LLaMA. You will need to add your HuggingFace access token to `train_ilm.py` and `tokenize_util.py`.
+Clone [our fork of Chris Donahue's ILM code base](https://github.com/ebertv/ilm/tree/master). And follow all instructions there for creating a custom dataset and fine tuning LLaMA. 
 
-Otherwise: TBD with our checkpoints
+To train your own model, you will need to add your HuggingFace access token to `train_ilm.py` and `tokenize_util.py`.
+
+Otherwise: download [our trained model](https://drive.google.com/file/d/1G5Zs9255bolXA3oF5S2n7ZYJK5-O-xlR/view?usp=sharing) and unzip and place it in the ilm folder. 
+
+### 3. Get Predictions
+Then run
+```
+python inference.py <split> \
+--examples_dir ./data/char_masks/custom/{dataset}
+--model_type llama
+```
+Output will be saved to: `./data/char_masks/custom/{dataset}/ilm_{model}\_infill_{split}.jsonl`
+
+To convert to the same format as the prompted models, run:
+```
+python find_real_convo.py \
+--data_path ./data/char_masks/custom/{dataset}/ilm_{model}\_infill_{split}.jsonl
+--full_convo_path <the corresponding {split}.json file from the data directory>
+```
+
+Evaluation is done in the same method as above:
+```
+python evaluate_outputs \ 
+--predictions_file <FILE CREATED ABOVE>
+```
+
 
 
 ## Citation
