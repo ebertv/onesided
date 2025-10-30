@@ -6,7 +6,7 @@ import os, sys, json
 from pathlib import Path
 from typing import List, Dict, Any
 import logging
-from prompt_outline import BASE_INSTR, RULES, SCENARIOS, DESC, ENHANCED_FEW_SHOT_EXAMPLES
+from prompt_outline import BASE_INSTR, RULES, SCENARIOS, DESC, ENHANCED_FEW_SHOT_EXAMPLES, NO_ANTI_HALLUCINATION_INSTR, NO_ANTI_HALLUCINATION_RULES
 from conversational_dataloader import ConversationalDataLoader
 
 
@@ -196,7 +196,7 @@ def format_full_dialogue_context(dialogue: Dict[str, Any], turn_n: int, include_
     
     return output
 
-def prepare_scenario_1_1(dialogue: Dict[str, Any], turn_n: int, use_few_shot: bool) -> str:
+def prepare_scenario_1_1(dialogue: Dict[str, Any], turn_n: int, use_few_shot: bool, disable_anti_hallucination: bool = False) -> str:
     """Basic next turn prediction without any additional signals
     
     Implementation:
@@ -222,9 +222,9 @@ Context:
 {context}"""
     
     # Use enhanced prompt with examples
-    return create_enhanced_prompt(base_prompt, "scenario_1_1", use_few_shot=use_few_shot)
+    return create_enhanced_prompt(base_prompt, "scenario_1_1", use_few_shot=use_few_shot, disable_anti_hallucination=disable_anti_hallucination)
 
-def prepare_scenario_1_2(dialogue: Dict[str, Any], turn_n: int, use_few_shot: bool) -> str:
+def prepare_scenario_1_2(dialogue: Dict[str, Any], turn_n: int, use_few_shot: bool, disable_anti_hallucination: bool = False) -> str:
     """Next turn prediction with future context
     
     Implementation:
@@ -263,9 +263,9 @@ Context:
 {context}"""
     
     # Use enhanced prompt with examples
-    return create_enhanced_prompt(base_prompt, "scenario_1_2", use_few_shot=use_few_shot)
+    return create_enhanced_prompt(base_prompt, "scenario_1_2", use_few_shot=use_few_shot, disable_anti_hallucination=disable_anti_hallucination)
 
-def prepare_scenario_2_1(dialogue: Dict[str, Any], turn_n: int, use_few_shot: bool) -> str:
+def prepare_scenario_2_1(dialogue: Dict[str, Any], turn_n: int, use_few_shot: bool, disable_anti_hallucination: bool = False) -> str:
     """Next turn prediction with word count signals
     
     Implementation:
@@ -302,9 +302,9 @@ Context:
 {context}"""
     
     # Use enhanced prompt with examples
-    return create_enhanced_prompt(base_prompt, "scenario_2_1", use_few_shot=use_few_shot)
+    return create_enhanced_prompt(base_prompt, "scenario_2_1", use_few_shot=use_few_shot, disable_anti_hallucination=disable_anti_hallucination)
 
-def prepare_scenario_2_2(dialogue: Dict[str, Any], turn_n: int, use_few_shot: bool) -> str:
+def prepare_scenario_2_2(dialogue: Dict[str, Any], turn_n: int, use_few_shot: bool, disable_anti_hallucination: bool = False) -> str:
     """Next turn prediction with both word count signals and future context
     
     Implementation:
@@ -353,9 +353,9 @@ Context:
 {context}"""
     
     # Use enhanced prompt with examples
-    return create_enhanced_prompt(base_prompt, "scenario_2_2", use_few_shot=use_few_shot)
+    return create_enhanced_prompt(base_prompt, "scenario_2_2", use_few_shot=use_few_shot, disable_anti_hallucination=disable_anti_hallucination)
 
-def prepare_scenario_3(dialogue: Dict[str, Any]) -> str:
+def prepare_scenario_3(dialogue: Dict[str, Any], disable_anti_hallucination: bool = False) -> str:
     """Next turn prediction for all system turns at once with word count signals
     
     Implementation:
@@ -408,22 +408,24 @@ Format your response EXACTLY as shown:
 ```"""
     return prompt
 
-def create_enhanced_prompt(base_prompt: str, scenario: str, use_few_shot: bool = True) -> str:
+def create_enhanced_prompt(base_prompt: str, scenario: str, use_few_shot: bool = True, disable_anti_hallucination: bool = False) -> str:
     """Create enhanced prompt with optional few-shot examples and detailed instructions."""
     
     # Get enhanced few-shot examples for this scenario (if enabled)
     examples = ENHANCED_FEW_SHOT_EXAMPLES.get(scenario, "") if use_few_shot else ""
+    if disable_anti_hallucination:
+        examples = examples.replace('XXXXXXX', '[SPECIFIC_INFO]')
     
     # Add scenario-specific word count guidance
+    base_instr = NO_ANTI_HALLUCINATION_INSTR if disable_anti_hallucination else BASE_INSTR
     if scenario in {"scenario_2_1", "scenario_2_2"}:
-        base_instr = BASE_INSTR + "\nNOTE: [MASKED - n words] indicates the expected length of the response.\n"
-    else:
-        base_instr = BASE_INSTR
+        base_instr += "\nNOTE: [MASKED - n words] indicates the expected length of the response.\n"
         
     
     # Build the complete enhanced prompt
     examples_section = f"\n{examples}\n" if examples.strip() else "\n[FEW-SHOT EXAMPLES DISABLED]\n"
-    enhanced_prompt = f"DIALOGUE COMPLETION TASK — {_desc_for(scenario)}\n\n{base_instr}\n{examples_section}\n=== BEGIN CONVERSATION ===\n{base_prompt}\n=== END CONVERSATION ===\n\n{RULES}"
+    enhanced_prompt = f"DIALOGUE COMPLETION TASK — {_desc_for(scenario)}\n\n{base_instr}\n{examples_section}\n=== BEGIN CONVERSATION ===\n{base_prompt}\n=== END CONVERSATION ===\n\n"
+    enhanced_prompt += NO_ANTI_HALLUCINATION_RULES if disable_anti_hallucination else RULES
     
     return enhanced_prompt
 
@@ -465,6 +467,70 @@ def load_test_split(test_split_file: str) -> List[Dict[str, Any]]:
     except Exception as e:
         logging.error(f"Error loading test split file {test_split_file}: {e}")
         return []
+    
+def load_test_split_txt(test_split_file_txt: str) -> List[Dict[str, Any]]:
+        """Load dialogues from a test split TXT file with 3-turn format"""
+        logging.info(f"Loading test split from TXT file: {test_split_file_txt}...")
+        
+        try:
+            with open(test_split_file_txt, 'r', encoding='utf-8') as f:
+                content = f.read().strip()
+            
+            # Split by triple newlines to get individual examples
+            examples = content.split('\n\n\n')
+            
+            if not examples:
+                logging.warning(f"No examples found in test split TXT file: {test_split_file_txt}")
+                return []
+            
+            formatted_dialogues = []
+            for i, example in enumerate(examples):
+                example = example.strip()
+                if not example:
+                    continue
+                
+                try:
+                    # Parse the 3-turn format
+                    # Each example should have exactly 3 turns
+                    turns = []
+                    speakers = []
+                    utterances = []
+                    
+                    # Split by "Turn X [Speaker]:" pattern to extract turns
+                    import re
+                    turn_pattern = r'Turn \d+ \[([^\]]+)\]: (.+?)(?=Turn \d+ \[|$)'
+                    matches = re.findall(turn_pattern, example, re.DOTALL)
+                    
+                    if len(matches) != 3:
+                        logging.warning(f"Example {i+1} does not have exactly 3 turns, skipping: {len(matches)} turns found")
+                        continue
+                    
+                    for speaker, utterance in matches:
+                        speakers.append(speaker)
+                        utterances.append(utterance.strip())
+                    
+                    # Create dialogue in expected format
+                    formatted_dialogue = {
+                        'speakers': speakers,
+                        'utterances': utterances,
+                        'dataset': 'multiwoz',  # Default to multiwoz since test file appears to be from multiwoz
+                        'dialogue_id': i,  # Use 0-based indexing
+                        'original_dialogue_id': f'txt_example_{i+1}',
+                        'split': 'test'
+                    }
+                    
+                    formatted_dialogues.append(formatted_dialogue)
+                    
+                except Exception as e:
+                    logging.warning(f"Error parsing example {i+1}: {e}")
+                    continue
+            
+            logging.info(f"Loaded {len(formatted_dialogues)} examples from TXT test split file")
+            return formatted_dialogues
+            
+        except Exception as e:
+            logging.error(f"Error loading test split TXT file {test_split_file_txt}: {e}")
+            return []
 
 if __name__ == "__main__":
     import argparse
@@ -482,8 +548,9 @@ if __name__ == "__main__":
     parser.add_argument("--output_file", type=str, default=None, help="Output file path to save prompts (JSONL format). If not specified, the file is named prompts_<ARGS>.jsonl.")
     parser.add_argument("--scenarios", type=str, nargs="+", default=SCENARIOS,
                         help=f"Scenarios to generate prompts for (e.g., scenario_1_1, scenario_1_2, scenario_2_1, scenario_2_2, scenario_3). By default, all scenarios: {SCENARIOS}")
-    parser.add_argument("--input_file", type=str, default=None, help="Input file path to load dialogues from (JSON format). If not specified, dialogues are loaded from datasets.")
-    
+    parser.add_argument("--input_file", type=str, default=None, help="Input file path to load dialogues from (JSON format or txt format). If not specified, dialogues are loaded from datasets.")
+    parser.add_argument("--disable_anti_hallucination", action="store_true", help="Disable anti-hallucination instructions in prompts.")
+
     args = parser.parse_args()
 
     if args.save_prompts and not args.output_file:
@@ -492,17 +559,28 @@ if __name__ == "__main__":
         else:
             input_base = Path(args.input_file).stem
             input_dataset = str(Path(args.input_file).parent).split('/')[-1]
-            args.output_file = f"prompts_{input_base}.jsonl"
+            scenarios = "_".join(args.scenarios)
+            args.output_file = f"prompts_{input_base}_{scenarios}.jsonl"
+            if args.input_file.endswith('.txt'):
+                args.output_file = args.output_file.replace('.jsonl', '_limited.jsonl')
             if args.scenarios == ["scenario_3"]:
                 args.output_file = f'prompts_{input_dataset}_fullconvo.jsonl'
             args.output_file = f'{input_dataset}_{args.output_file}'
+            if args.disable_anti_hallucination:
+                args.output_file = args.output_file.replace('.jsonl', '_noxxxx.jsonl')
     output_file = Path(args.output_file) if args.output_file else None
     print(f"[INFO] Output file: {output_file}" if output_file else "[INFO] No output file specified, prompts will not be saved.")
 
     if args.input_file:
         # Load dialogues from the specified input file
         print(f"[INFO] Loading dialogues from input file: {args.input_file}")
-        all_dialogues = load_test_split(args.input_file)  
+        if args.input_file.endswith('.json'):
+            all_dialogues = load_test_split(args.input_file)  
+        elif args.input_file.endswith('.txt'):
+            all_dialogues = load_test_split_txt(args.input_file)
+        else:
+            print(f"[ERROR] Unsupported input file format: {args.input_file}. Supported formats are .json and .txt")
+            sys.exit(1) 
         if args.max_dialogues:
             all_dialogues = all_dialogues[:args.max_dialogues]
     else:
@@ -549,13 +627,13 @@ if __name__ == "__main__":
             if scen.startswith("scenario_1") or scen.startswith("scenario_2"):
                 for turn_n in target_turns:
                     if scen == "scenario_1_1":
-                        prompt_text = prepare_scenario_1_1(dlg, turn_n, use_few_shot=args.use_few_shot)
+                        prompt_text = prepare_scenario_1_1(dlg, turn_n, use_few_shot=args.use_few_shot, disable_anti_hallucination=args.disable_anti_hallucination)
                     elif scen == "scenario_1_2":
-                        prompt_text = prepare_scenario_1_2(dlg, turn_n, use_few_shot=args.use_few_shot)
+                        prompt_text = prepare_scenario_1_2(dlg, turn_n, use_few_shot=args.use_few_shot, disable_anti_hallucination=args.disable_anti_hallucination)
                     elif scen == "scenario_2_1":
-                        prompt_text = prepare_scenario_2_1(dlg, turn_n, use_few_shot=args.use_few_shot)
+                        prompt_text = prepare_scenario_2_1(dlg, turn_n, use_few_shot=args.use_few_shot, disable_anti_hallucination=args.disable_anti_hallucination)
                     elif scen == "scenario_2_2":
-                        prompt_text = prepare_scenario_2_2(dlg, turn_n, use_few_shot=args.use_few_shot)
+                        prompt_text = prepare_scenario_2_2(dlg, turn_n, use_few_shot=args.use_few_shot, disable_anti_hallucination=args.disable_anti_hallucination)
                     else:
                         print(f"[WARN] Unknown scenario: {scen}")
                         continue

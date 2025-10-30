@@ -13,10 +13,37 @@ TASK: You are predicting what the system would say next in a natural conversatio
 Your response should be informative, specific, and helpful to the user."""
 )
 
+NO_ANTI_HALLUCINATION_INSTR = (
+    """CRITICAL INSTRUCTIONS FOR DIALOGUE COMPLETION:
+1. PREDICT THE EXACT SYSTEM RESPONSE that would naturally follow in this conversation
+2. PRESERVE ALL SPECIFIC DETAILS: times, dates, names, locations, numbers, reference codes, prices, phone numbers
+3. Provide specific and realistic information when needed to make the response helpful
+4. Maintain the same information density and factual accuracy as expected
+5. Match the tone and style of the conversation
+6. Focus on providing the most relevant and complete information
+7. You may use future turns (after the prediction turn) as background context to improve accuracy, but you must NOT explicitly include, mention, or preempt any new facts, topics, or requests that appear only in those future turns in your actual prediction.
+
+TASK: You are predicting what the system would say next in a natural conversation.
+Your response should be informative, specific, and helpful to the user."""
+)
+
 RULES = ("""RULES:
 • Generate the exact system response that would naturally follow
 • Preserve all specific details (times, names, locations, numbers, reference codes, prices)
 • ANTI-HALLUCINATION: Use 'XXXXXXX' for any specific information not available in the context
+• Maintain factual accuracy and information completeness
+• Match the conversational style and tone
+• Do NOT add commentary, labels, or extra text
+• Do NOT preface with 'assistant:' or similar
+• You may use future turns (after the prediction turn) as background context to improve accuracy, but you must NOT explicitly include, mention, or preempt any new facts, topics, or requests that appear only in those future turns in your actual prediction.
+• Focus on providing the most relevant and specific information
+• Be helpful and informative to the user"""
+)
+
+NO_ANTI_HALLUCINATION_RULES = ("""RULES:
+• Generate the exact system response that would naturally follow
+• Preserve all specific details (times, names, locations, numbers, reference codes, prices)
+• Provide realistic and helpful specific information when needed
 • Maintain factual accuracy and information completeness
 • Match the conversational style and tone
 • Do NOT add commentary, labels, or extra text

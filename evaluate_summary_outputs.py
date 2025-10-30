@@ -1571,8 +1571,8 @@ if __name__ == "__main__":
         with open(evaluations, 'r', encoding='utf-8') as f:
             eval_data = [json.loads(line) for line in f if line.strip()]
         evaluator = PredictionEvaluator(openai_api_key=OPENAI_API_KEY)
-        scenario_metrics = evaluator.calculate_scenario_metrics(eval_data)
-        evaluator.log_summary_metrics(scenario_metrics)
+        aggregate_metrics = evaluator.calculate_aggregate_metrics(eval_data)
+        evaluator.log_summary_metrics(aggregate_metrics)
         sys.exit(0)
 
     summaries_file = args.summaries_file

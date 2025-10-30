@@ -188,12 +188,7 @@ class DialoguePredictor:
         try:
             # Simple delay before API call
             await asyncio.sleep(0.3)
-            
-            message = self.claude_client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=1000,
-                temperature=0,
-                system="""You are a dialogue predictor for task-oriented conversations.
+            sys_message = """You are a dialogue predictor for task-oriented conversations.
 
 Your role is to predict direct, helpful system responses that:
 - Address the user's needs clearly and stay focused on the task
@@ -205,7 +200,15 @@ CRITICAL: Respond with ONLY the direct system response. Never include:
 - Explanations or reasoning
 - Meta-commentary about the conversation  
 - Markdown formatting or delimiters
-- Prefixes like 'assistant:' or similar""",
+- Prefixes like 'assistant:' or similar"""
+            if 'ANTI-HALLUCINATION' not in prompt:
+                sys_message = sys_message.replace("- ANTI-HALLUCINATION: Use 'XXXXXXX' for any specific information not in the context (names, numbers, addresses, etc.) rather than inventing details.", "")
+            
+            message = self.claude_client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=1000,
+                temperature=0,
+                system=sys_message,
                 messages=[
                     {"role": "user", "content": prompt}
                 ]
