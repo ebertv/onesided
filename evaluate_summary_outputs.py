@@ -496,33 +496,50 @@ Respond with valid JSON in this EXACT format:
         precision_recall_metrics = {}
         if has_full_evaluation:
             try:
-                precision_scores = []
-                recall_scores = []
+                predicted_precision_scores = []
+                predicted_recall_scores = []
+
+                masked_precision_scores = []
+                masked_recall_scores = []
                 
                 for r in results:
                     if (r.get("evaluation") and 
-                        r["evaluation"].get("blind_evaluation") and 
-                        r["evaluation"]["blind_evaluation"].get("precision_recall") and
-                        r["evaluation"]["blind_evaluation"]["precision_recall"].get("detail_extraction")):
+                        r["evaluation"].get("precision_recall_evaluations")):
+
+                        predicted = r["evaluation"]["precision_recall_evaluations"].get("predicted")
+                        masked = r["evaluation"]["precision_recall_evaluations"].get("masked")
+
+                        predicted_extraction = predicted["detail_extraction"] if predicted else {}
+                        masked_extraction = masked["detail_extraction"] if masked else {}
                         
-                        detail_extraction = r["evaluation"]["blind_evaluation"]["precision_recall"]["detail_extraction"]
-                        if "precision_fraction" in detail_extraction:
-                            precision_scores.append(detail_extraction["precision_fraction"])
-                        if "recall_fraction" in detail_extraction:
-                            recall_scores.append(detail_extraction["recall_fraction"])
+                        
+                        if predicted_extraction and "precision_fraction" in predicted_extraction:
+                            predicted_precision_scores.append(predicted_extraction["precision_fraction"])
+                        if predicted_extraction and "recall_fraction" in predicted_extraction:
+                            predicted_recall_scores.append(predicted_extraction["recall_fraction"])
+                        
+                        if masked_extraction and "precision_fraction" in masked_extraction:
+                            masked_precision_scores.append(masked_extraction["precision_fraction"])
+                        if masked_extraction and "recall_fraction" in masked_extraction:
+                            masked_recall_scores.append(masked_extraction["recall_fraction"])
+                    
                 
-                logging.info(f"Found {len(precision_scores)} precision scores and {len(recall_scores)} recall scores")
+                logging.info(f"Found {len(predicted_precision_scores)} predicted precision scores and {len(predicted_recall_scores)} predicted recall scores")
+                logging.info(f"Found {len(masked_precision_scores)} masked precision scores and {len(masked_recall_scores)} masked recall scores")
+
                 
-                precision_recall_metrics = {
-                    "precision": self.calc_stats(precision_scores),
-                    "recall": self.calc_stats(recall_scores)
+                predicted_precision_recall_metrics = {
+                    "precision": self.calc_stats(predicted_precision_scores),
+                    "recall": self.calc_stats(predicted_recall_scores)
+                }
+                masked_precision_recall_metrics = {
+                    "precision": self.calc_stats(masked_precision_scores),
+                    "recall": self.calc_stats(masked_recall_scores)
                 }
             except (KeyError, TypeError) as e:
                 logging.warning(f"Error in precision/recall extraction: {e}")
-                precision_recall_metrics = {
-                    "precision": {"mean": 0, "stdev": 0},
-                    "recall": {"mean": 0, "stdev": 0}
-                }
+                predicted_precision_recall_metrics = {"precision": {"mean": 0, "stdev": 0}, "recall": {"mean": 0, "stdev": 0}}
+                masked_precision_recall_metrics = {"precision": {"mean": 0, "stdev": 0}, "recall": {"mean": 0, "stdev": 0}}
         
         # Extract length differences for specified pairs only
         length_diffs = {}
@@ -545,8 +562,10 @@ Respond with valid JSON in this EXACT format:
         }
         
         # Add precision/recall only if available
-        if precision_recall_metrics:
-            result["precision_recall"] = precision_recall_metrics
+        if predicted_precision_recall_metrics and masked_precision_recall_metrics:
+            result["precision_recall"] = {}
+            result["precision_recall"]["predicted"] = predicted_precision_recall_metrics
+            result["precision_recall"]["masked"] = masked_precision_recall_metrics
             
         return result
 
@@ -703,66 +722,72 @@ Respond with valid JSON in this EXACT format:
 
     def log_summary_metrics(self, results: Dict):
         """Log summary metrics from the results dictionary."""
-        logger = logging.getLogger(__name__)
-        logger.info("\n=== Summarization Comparison Results ===")
-        logger.info(f"Processed Dialogues: {results['aggregate_metrics'].get('num_dialogues', 0)}")
+        print("\n=== Summarization Comparison Results ===")
+        print(f"Processed Dialogues: {results.get('num_dialogues', 0)}")
         
         # Log ROUGE scores for specified pairs only
-        rouge = results["aggregate_metrics"].get("rouge_scores", {})
+        rouge = results.get("rouge_scores", {})
         if rouge:
-            logger.info("\nROUGE Scores:")
+            print("\nROUGE Scores:")
             for pair in ["masked_vs_full", "predicted_vs_full"]:
                 if pair in rouge:
-                    logger.info(f"\n{pair.replace('_', ' ').title()}:")
-                    logger.info(f"ROUGE-1: {rouge[pair]['rouge1']['mean']:.3f} ± {rouge[pair]['rouge1']['stdev']:.3f}")
-                    logger.info(f"ROUGE-2: {rouge[pair]['rouge2']['mean']:.3f} ± {rouge[pair]['rouge2']['stdev']:.3f}")
-                    logger.info(f"ROUGE-L: {rouge[pair]['rougeL']['mean']:.3f} ± {rouge[pair]['rougeL']['stdev']:.3f}")
+                    print(f"\n{pair.replace('_', ' ').title()}:")
+                    print(f"ROUGE-1: {rouge[pair]['rouge1']['mean']:.3f} ± {rouge[pair]['rouge1']['stdev']:.3f}")
+                    print(f"ROUGE-2: {rouge[pair]['rouge2']['mean']:.3f} ± {rouge[pair]['rouge2']['stdev']:.3f}")
+                    print(f"ROUGE-L: {rouge[pair]['rougeL']['mean']:.3f} ± {rouge[pair]['rougeL']['stdev']:.3f}")
         
         # Log blind evaluation scores (requires predictions)
-        evaluation = results["aggregate_metrics"].get("evaluation", {})
+        evaluation = results.get("evaluation", {})
         if evaluation and evaluation.get("type") == "blind_evaluation":
             eval_scores = evaluation.get("scores", {})
-            logger.info("\nBlind Evaluation Scores (Randomized Order):")
+            print("\nBlind Evaluation Scores (Randomized Order):")
             for summary_type in ["complete", "masked", "predicted"]:
                 if summary_type in eval_scores and eval_scores[summary_type]:
                     display_name = f"{summary_type.title()} Summary"
                     scores = eval_scores[summary_type]
-                    logger.info(f"\n{display_name}:")
-                    logger.info(f"Overall Score: {scores.get('total_score', {}).get('mean', 0):.2f} ± {scores.get('total_score', {}).get('stdev', 0):.2f}")
-                    logger.info(f"Content Coverage: {scores.get('content_coverage', {}).get('mean', 0):.2f} ± {scores.get('content_coverage', {}).get('stdev', 0):.2f}")
-                    logger.info(f"Information Accuracy: {scores.get('information_accuracy', {}).get('mean', 0):.2f} ± {scores.get('information_accuracy', {}).get('stdev', 0):.2f}")
-                    logger.info(f"Dialogue Flow: {scores.get('dialogue_flow', {}).get('mean', 0):.2f} ± {scores.get('dialogue_flow', {}).get('stdev', 0):.2f}")
-                    logger.info(f"Purpose & Outcome: {scores.get('purpose_outcome', {}).get('mean', 0):.2f} ± {scores.get('purpose_outcome', {}).get('stdev', 0):.2f}")
-                    logger.info(f"Detail Balance: {scores.get('detail_balance', {}).get('mean', 0):.2f} ± {scores.get('detail_balance', {}).get('stdev', 0):.2f}")
+                    print(f"\n{display_name}:")
+                    print(f"Overall Score: {scores.get('total_score', {}).get('mean', 0):.2f} ± {scores.get('total_score', {}).get('stdev', 0):.2f}")
+                    print(f"Content Coverage: {scores.get('content_coverage', {}).get('mean', 0):.2f} ± {scores.get('content_coverage', {}).get('stdev', 0):.2f}")
+                    print(f"Information Accuracy: {scores.get('information_accuracy', {}).get('mean', 0):.2f} ± {scores.get('information_accuracy', {}).get('stdev', 0):.2f}")
+                    print(f"Dialogue Flow: {scores.get('dialogue_flow', {}).get('mean', 0):.2f} ± {scores.get('dialogue_flow', {}).get('stdev', 0):.2f}")
+                    print(f"Purpose & Outcome: {scores.get('purpose_outcome', {}).get('mean', 0):.2f} ± {scores.get('purpose_outcome', {}).get('stdev', 0):.2f}")
+                    print(f"Detail Balance: {scores.get('detail_balance', {}).get('mean', 0):.2f} ± {scores.get('detail_balance', {}).get('stdev', 0):.2f}")
         
         # Log separate precision/recall metrics (predicted vs complete) - only available for blind evaluation
-        precision_recall = results["aggregate_metrics"].get("precision_recall", {})
+        precision_recall = results.get("precision_recall", {})
         if precision_recall:
-            logger.info("\nPrecision & Recall (Predicted vs Complete):")
-            logger.info(f"Precision: {precision_recall.get('precision', {}).get('mean', 0):.2f} ± {precision_recall.get('precision', {}).get('stdev', 0):.2f}")
-            logger.info(f"Recall: {precision_recall.get('recall', {}).get('mean', 0):.2f} ± {precision_recall.get('recall', {}).get('stdev', 0):.2f}")
+            print("\nPrecision & Recall (Predicted vs Complete):")
+            print(f"Precision: {precision_recall['predicted'].get('precision', {}).get('mean', 0):.2f} ± {precision_recall['predicted'].get('precision', {}).get('stdev', 0):.2f}")
+            print(f"Recall: {precision_recall['predicted'].get('recall', {}).get('mean', 0):.2f} ± {precision_recall['predicted'].get('recall', {}).get('stdev', 0):.2f}")
+            
+            print("\nPrecision & Recall (Masked vs Complete):")
+            print(f"Precision: {precision_recall['masked'].get('precision', {}).get('mean', 0):.2f} ± {precision_recall['masked'].get('precision', {}).get('stdev', 0):.2f}")
+            print(f"Recall: {precision_recall['masked'].get('recall', {}).get('mean', 0):.2f} ± {precision_recall['masked'].get('recall', {}).get('stdev', 0):.2f}")
+
         
         # Log ranking analysis
         ranking = evaluation.get("ranking_analysis", {})
         if ranking:
-            logger.info("\nRanking Analysis:")
+            print("\nRanking Analysis:")
             
             if "percentages" in ranking:
-                logger.info("\nBlind Rankings (Randomized Order):")
+                print("\nBlind Rankings (Randomized Order):")
                 for summary_type in ["complete", "masked", "predicted"]:
                     if summary_type in ranking["percentages"]:
                         percentages = ranking["percentages"][summary_type]
-                        logger.info(f"{summary_type.title()} Summary:")
-                        logger.info(f"  1st: {percentages.get('1st', 0):.1f}%")
-                        logger.info(f"  2nd: {percentages.get('2nd', 0):.1f}%")
-                        logger.info(f"  3rd: {percentages.get('3rd', 0):.1f}%")
+                        print(f"{summary_type.title()} Summary:")
+                        print(f"  1st: {percentages.get('1st', 0):.1f}%")
+                        print(f"  2nd: {percentages.get('2nd', 0):.1f}%")
+                        print(f"  3rd: {percentages.get('3rd', 0):.1f}%")
             
             # Log length differences for specified pairs only
-            length_diffs = results["aggregate_metrics"].get("summary_length_differences", {})
+            length_diffs = results.get("summary_length_differences", {})
             if length_diffs:
-                logger.info("\nSummary Length Differences (in words):")
+                print("\nSummary Length Differences (in words):")
                 for pair, stats in length_diffs.items():
-                    logger.info(f"{pair.replace('_', ' ').title()}: {stats.get('mean', 0):.1f} ± {stats.get('stdev', 0):.1f}")
+                    print(f"{pair.replace('_', ' ').title()}: {stats.get('mean', 0):.1f} ± {stats.get('stdev', 0):.1f}")
+
+
 
     async def evaluate_predicted_vs_full_conversation(self, predicted_context: str, full_context: str) -> Dict[str, Any]:
         """Evaluate predicted conversation directly against full conversation using same metrics as predictions_with_claude.py"""
@@ -1019,6 +1044,7 @@ IMPORTANT: Keep reasoning text simple and avoid quotes, apostrophes, or special 
 
     def log_prediction_summary_metrics(self, results: Dict):
         """Log summary metrics for prediction evaluation results"""
+        
         logger = logging.getLogger(__name__)
         logger.info("\n=== Prediction Evaluation Results ===")
         logger.info(f"Processed Dialogues: {results['aggregate_metrics'].get('num_dialogues', 0)}")

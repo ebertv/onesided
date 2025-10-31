@@ -180,7 +180,6 @@ python evaluate_summary_outputs.py \
 --evaluation_file <FILE JUST CREATED>
 --summarize
 ```
-^code not done yet
 
 
 ## Fine tuning

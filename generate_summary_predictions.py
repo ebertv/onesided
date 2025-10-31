@@ -203,8 +203,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate predictions for one-sided dialogue scenarios.")
     parser.add_argument("--input_file", type=str, required=True, help="Path to the input JSONL file with prompts.")
     parser.add_argument("--output_file", type=str, help="Path to the output JSONL file to save predictions. If no file is given, input_file is used, with 'prompts' replaced with 'predictions<model>'.")
-    parser.add_argument("--model_name", type=str, required=True, help="Name or path of the model to use for generation.")
+    parser.add_argument("--model_name", type=str, default='claude', help="Name or path of the model to use for generation.")
     args = parser.parse_args()
+
+    if args.model_name.lower() != "claude":
+        print("Currently only 'claude' model is supported.")
+        sys.exit(1)
 
     if not args.output_file:
         args.output_file = args.input_file.replace("prompts", f"predictions_{args.model_name}")
