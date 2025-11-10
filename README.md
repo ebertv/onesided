@@ -224,5 +224,13 @@ python evaluate_outputs \
 ## Citation
 If you use this repository in your work please consider citing our paper:
 ```
-TBD
+@misc{ebert2025readinglinesonesidedconversation,
+      title={Reading Between the Lines: The One-Sided Conversation Problem}, 
+      author={Victoria Ebert and Rishabh Singh and Tuochao Chen and Noah A. Smith and Shyamnath Gollakota},
+      year={2025},
+      eprint={2511.03056},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2511.03056}, 
+}
 ```
